@@ -46,9 +46,8 @@ def best_map(true_labels, pred_labels):
     mapping = {row: col for row, col in zip(row_ind, col_ind)}
     return np.array([mapping[label] for label in pred_labels])
 
-def enhanced_structural_embeddings(G, n_components):
+def enhanced_structural_embeddings(G, n_components,player_names):
     """Spectral embedding method, time complexity O(V^3)"""
-    player_names = sorted(G.nodes())  
     
     # Spectral embedding method
     adj_matrix = nx.to_numpy_array(G, nodelist=player_names)  # Build adjacency matrix
@@ -190,54 +189,3 @@ def hierarchical_community_optimization(G, partition, min_size,
                     partition[node] = target_comm
     
     return partition
-
-def visualize_results(G_orig, G_new, pos, true_labels, pred_labels, file_name, result_dir):
-    """Result visualization, time complexity O(V + E)"""
-    # Structure comparison visualization
-    plt.figure(figsize=(15, 6))
-    
-    plt.subplot(131)
-    nx.draw_networkx_nodes(G_orig, pos, node_color=true_labels, 
-                          cmap='tab20', node_size=150)
-    nx.draw_networkx_edges(G_orig, pos, edge_color='gray', alpha=0.5)
-    plt.title("Original Network")
-    
-    plt.subplot(132)
-    nx.draw_networkx_nodes(G_new, pos, node_color=true_labels,
-                         cmap='tab20', node_size=150)
-    nx.draw_networkx_edges(G_new, pos, edge_color='gray', alpha=0.5)
-    plt.title("Protected Network")
-    
-    plt.subplot(133)
-    orig_edges = set(G_orig.edges())
-    new_edges = set(G_new.edges())
-    kept_edges = new_edges & orig_edges
-    added_edges = new_edges - orig_edges
-    
-    nx.draw_networkx_edges(G_new, pos, edgelist=kept_edges, edge_color='red', width=1.5)
-    nx.draw_networkx_edges(G_new, pos, edgelist=added_edges, edge_color='green', width=1.5)
-    nx.draw_networkx_nodes(G_new, pos, node_color=true_labels,
-                         cmap='tab20', node_size=50, alpha=0.7)
-    plt.title("Edge Changes (Red:Kept, Green:Added)")
-    
-    plt.tight_layout()
-    plt.savefig(os.path.join(result_dir, f'{file_name}_structure_comparison.png'))
-    plt.close()
-    
-    # Community comparison visualization
-    plt.figure(figsize=(12, 6))
-    plt.subplot(121)
-    nx.draw_networkx_nodes(G_orig, pos, node_color=true_labels, cmap='tab20', node_size=150)
-    nx.draw_networkx_edges(G_orig, pos, edge_color='gray', alpha=0.5)
-    plt.title("Original Communities")
-    plt.axis('off')
-    
-    plt.subplot(122)
-    nx.draw_networkx_nodes(G_orig, pos, node_color=pred_labels, cmap='tab20', node_size=150)
-    nx.draw_networkx_edges(G_orig, pos, edge_color='gray', alpha=0.5)
-    plt.title("Predicted Communities")
-    plt.axis('off')
-    
-    plt.tight_layout()
-    plt.savefig(os.path.join(result_dir, f'{file_name}_community_comparison.png'))
-    plt.close()
