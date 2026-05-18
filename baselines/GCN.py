@@ -147,7 +147,7 @@ def cal_q(G, pred_labels):
     return q
 
 # ---------------------------------------------------------------------------#
-# 3. Example entry
+# 2. Example entry
 # ---------------------------------------------------------------------------#
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -163,11 +163,9 @@ if __name__ == "__main__":
     edge_path = os.path.join(input_dir, f'{file_name}_edges.txt')
 
     G = load_graph_with_attributes(node_path, edge_path)
-    
     cutoff = 2
     if cutoff is not None:
         G = extract_hop_subgraph(G, cutoff=cutoff)
-    
     labels = [G.nodes[n]["actual_community"] for n in G.nodes()]
 
     data = from_networkx(G)
