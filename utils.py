@@ -35,17 +35,6 @@ def load_graph_with_attributes(node_file_path, edge_file_path):
                 G.add_edge(int(n1), int(n2))
     return G
 
-def best_map(true_labels, pred_labels):
-    true_labels = np.asarray(true_labels)
-    pred_labels = np.asarray(pred_labels)
-    D = max(pred_labels.max(), true_labels.max()) + 1
-    w = np.zeros((D, D), dtype=np.int64)
-    for i in range(pred_labels.size):
-        w[pred_labels[i], true_labels[i]] += 1
-    row_ind, col_ind = linear_sum_assignment(w.max() - w)
-    mapping = {row: col for row, col in zip(row_ind, col_ind)}
-    return np.array([mapping[label] for label in pred_labels])
-
 def enhanced_structural_embeddings(G, n_components,player_names):
     """Spectral embedding method, time complexity O(V^3)"""
     
@@ -73,8 +62,6 @@ def community_topk_similarity_graph(G, embeddings, player_names, resolution,
                                    similarity_threshold, preserve_ratio,
                                    max_preserved_edges, k_factor):
     """Build new graph based on community structure and TopK similarity, time complexity O(V^2 + E)"""
-    similarity_matrix = cosine_similarity(embeddings)
-    similarity_matrix = np.maximum(similarity_matrix, 0)
     G_emb = nx.Graph()
     G_emb.add_nodes_from(player_names)
     
@@ -110,6 +97,8 @@ def community_topk_similarity_graph(G, embeddings, player_names, resolution,
                 G_emb.add_edge(u, v, weight=1.0, type="preserved")
     
     # 2. Add TopK similarity edges
+    similarity_matrix = cosine_similarity(embeddings)
+    similarity_matrix = np.maximum(similarity_matrix, 0)
     k = min(k_factor, max(1, len(player_names)//10))  
     for i, u in enumerate(player_names):
         # Get k nodes with highest similarity (excluding self)
@@ -150,8 +139,7 @@ def louvain_community_detection(G, resolution, n_iter, use_weight):
             best_partition = partition
     return best_partition
 
-def hierarchical_community_optimization(G, partition, min_size, 
-                                       size_ratio):
+def hierarchical_community_optimization(G, partition, min_size, size_ratio):
     """Hierarchical community optimization, Merge overly small communities, time complexity O(V + E)"""
 
     comm_nodes = defaultdict(list)
