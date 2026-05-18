@@ -11,7 +11,6 @@ from sklearn.metrics import (
 # ---------------------------------------------------------------------------#
 # 0. Read network
 # ---------------------------------------------------------------------------#
-
 def load_graph_with_attributes(node_file_path, edge_file_path):
     G = nx.Graph()
     with open(node_file_path, 'r') as f:
@@ -31,7 +30,6 @@ def load_graph_with_attributes(node_file_path, edge_file_path):
 # ---------------------------------------------------------------------------#
 # 1. LPA function
 # ---------------------------------------------------------------------------#
-
 def label_propagation_community_detection(G, max_iter):
     labels = {node: i for i, node in enumerate(G.nodes())}
     
@@ -71,9 +69,8 @@ def label_propagation_community_detection(G, max_iter):
     return labels, actual_iterations
 
 # ---------------------------------------------------------------------------#
-# 2. evaluation modularity                                                                #
+# 2. evaluation modularity                                                                
 # ---------------------------------------------------------------------------#
-
 def compute_modularity(partition, G):
     m = G.number_of_edges()
     if m == 0:
@@ -99,30 +96,12 @@ def compute_modularity(partition, G):
     
     return modularity
 
-def best_map(true_labels, pred_labels):
-    true_labels = np.asarray(true_labels)
-    pred_labels = np.asarray(pred_labels)
-    
-    true_labels = true_labels.astype(int)
-    pred_labels = pred_labels.astype(int)
-    
-    D = max(pred_labels.max(), true_labels.max()) + 1
-    w = np.zeros((D, D), dtype=np.int64)
-    
-    for i in range(pred_labels.size):
-        w[pred_labels[i], true_labels[i]] += 1
-    
-    row_ind, col_ind = linear_sum_assignment(w.max() - w)
-    mapping = {int(row): int(col) for row, col in zip(row_ind, col_ind)}
-    return np.array([mapping[label] for label in pred_labels])
-
 # ---------------------------------------------------------------------------#
 # 3. Example entry
 # ---------------------------------------------------------------------------#
-
 if __name__ == "__main__":
-    LPA_MAX_ITER = 100           # Maximum number of iterations (adjustable parameter)
-    RANDOM_SEED = 42            # Random seed (ensures reproducibility)
+    LPA_MAX_ITER = 100           
+    RANDOM_SEED = 42           
 
     # tree
     file_name = "tree" 
@@ -168,7 +147,6 @@ if __name__ == "__main__":
     partition, actual_iterations = label_propagation_community_detection(G, max_iter=LPA_MAX_ITER)
     
     pred_labels = [partition[n] for n in player_names]
-    pred_labels = best_map(true_labels, pred_labels)
     
     modularity = compute_modularity(partition, G)
     ari = adjusted_rand_score(true_labels, pred_labels)
