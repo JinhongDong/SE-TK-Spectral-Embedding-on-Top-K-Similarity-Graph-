@@ -80,7 +80,7 @@ def community_topk_similarity_graph(G, embeddings, player_names, resolution,
         # Randomly select intra-community edges to preserve
         random.shuffle(intra_edges)
         for u, v in intra_edges[:num_to_preserve]:
-            G_emb.add_edge(u, v, weight=1.0, type="preserved")
+            G_emb.add_edge(u, v, weight=1.0, edge_type="preserved")
     except Exception as e:
         print(f"Community structure preservation failed: {e}")
         # If community detection fails, use centrality strategy as backup
@@ -88,13 +88,13 @@ def community_topk_similarity_graph(G, embeddings, player_names, resolution,
             edge_centrality = nx.edge_betweenness_centrality(G)
             sorted_edges = sorted(G.edges(), key=lambda x: edge_centrality[x], reverse=True)
             for u, v in sorted_edges[:min(max_edges,int(len(sorted_edges)*preserve_ratio))]:
-                G_emb.add_edge(u, v, weight=1.0, type="preserved")
+                G_emb.add_edge(u, v, weight=1.0, edge_type="preserved")
         except:
             # If centrality calculation fails, randomly preserve some edges
             edges = list(G.edges())
             random.shuffle(edges)
             for u, v in edges[:min(max_edges, len(edges)*preserve_ratio)]:
-                G_emb.add_edge(u, v, weight=1.0, type="preserved")
+                G_emb.add_edge(u, v, weight=1.0, edge_type="preserved")
     
     # 2. Add TopK similarity edges
     similarity_matrix = cosine_similarity(embeddings)
@@ -110,7 +110,7 @@ def community_topk_similarity_graph(G, embeddings, player_names, resolution,
             if sim_scores[idx] > similarity_threshold:  
                 v = player_names[idx]
                 if not G_emb.has_edge(u, v):
-                    G_emb.add_edge(u, v, weight=sim_scores[idx], type="added")
+                    G_emb.add_edge(u, v, weight=sim_scores[idx], edge_type="added")
     
     # 3. Ensure minimum connectivity
     for node in player_names:
@@ -122,7 +122,7 @@ def community_topk_similarity_graph(G, embeddings, player_names, resolution,
             if sims[most_similar] > similarity_threshold:
                 v = player_names[most_similar]
                 if not G_emb.has_edge(node, v):
-                    G_emb.add_edge(node, v, weight=sims[most_similar], type="connectivity")
+                    G_emb.add_edge(node, v, weight=sims[most_similar], edge_type="connectivity")
     
     return G_emb
 
