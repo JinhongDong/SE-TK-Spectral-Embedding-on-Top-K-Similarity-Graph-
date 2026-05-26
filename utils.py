@@ -16,6 +16,10 @@ from scipy.linalg import eigh
 from sklearn.model_selection import ParameterGrid
 import warnings
 import random
+from scipy.sparse import diags
+from scipy.sparse.linalg import eigsh
+from scipy.sparse import csr_matrix
+from sklearn.utils.extmath import randomized_svd
 
 # ---------- Utility Functions ----------
 def load_graph_with_attributes(node_file_path, edge_file_path):
@@ -35,28 +39,43 @@ def load_graph_with_attributes(node_file_path, edge_file_path):
                 G.add_edge(int(n1), int(n2))
     return G
 
-def enhanced_structural_embeddings(G, n_components,player_names):
+def enhanced_structural_embeddings(G, n_components,player_names,device):
     """Spectral embedding method, time complexity O(V^3)"""
-    
-    # Spectral embedding method
-    adj_matrix = nx.to_numpy_array(G, nodelist=player_names)  # Build adjacency matrix
-    degrees = np.array([d for _, d in G.degree(player_names)])  # Compute degree matrix
-    deg_inv_sqrt = np.diag(1.0 / np.sqrt(degrees + 1e-10))  # Compute degree inverse square root matrix
-    laplacian = np.eye(len(player_names)) - deg_inv_sqrt @ adj_matrix @ deg_inv_sqrt  # Build Laplacian matrix
-    
-    # Compute eigenvalues and eigenvectors
-    eigenvalues, eigenvectors = eigh(laplacian)
-    idx = eigenvalues.argsort()
-    
-    # Select smallest eigenvectors with eigenvalues greater than zero
-    start_idx = np.sum(eigenvalues < 1e-8)
-    end_idx = min(start_idx + n_components, len(player_names))
-    
-    embeddings = eigenvectors[:, idx[start_idx:end_idx]]
-    
-    # Normalize embedding vectors
-    embeddings = embeddings / (np.linalg.norm(embeddings, axis=1, keepdims=True) + 1e-8)
-    return embeddings
+    if G.number_of_nodes() < 10000:
+        adj_np = nx.to_numpy_array(G, nodelist=player_names)
+        adj = torch.tensor(adj_np, dtype=torch.float64, device=device)
+        degrees = adj.sum(dim=1)
+        deg_inv_sqrt = torch.diag(1.0 / torch.sqrt(degrees + 1e-10))
+        eye = torch.eye(len(player_names), dtype=torch.float64, device=device)
+        laplacian = eye - deg_inv_sqrt @ adj @ deg_inv_sqrt
+
+        eigenvalues, eigenvectors = torch.linalg.eigh(laplacian)
+        idx = torch.argsort(eigenvalues)
+        start_idx = int((eigenvalues < 1e-8).sum().item())
+        end_idx = min(start_idx + n_components, len(player_names))
+        embeddings = eigenvectors[:, idx[start_idx:end_idx]]
+        embeddings = embeddings / (embeddings.norm(dim=1, keepdim=True) + 1e-8)
+
+        return embeddings.cpu().numpy()
+        
+    else:
+        n_nodes = len(player_names)
+        adj_matrix = nx.to_numpy_array(G, nodelist=player_names)
+        adj_tensor = torch.from_numpy(adj_matrix).float().to(device)
+        degrees = torch.sum(adj_tensor, dim=1)
+        eps = 1e-10
+        deg_inv_sqrt = torch.diag(1.0 / torch.sqrt(degrees + eps))
+        L= torch.eye(n_nodes, device=device) - deg_inv_sqrt @ adj_tensor @ deg_inv_sqrt
+        laplacian_cpu = L.cpu().numpy()
+
+        U, s, _ = randomized_svd(laplacian_cpu, n_components=n_components, 
+                                n_iter=5, random_state=42)
+        evals= torch.tensor(s, device=device)
+        evecs = torch.tensor(U, device=device)
+        embeddings = evecs[:, 1:]  # skip trivial
+        embeddings /= (torch.linalg.norm(embeddings, axis=1, keepdims=True) + 1e-8)
+
+        return embeddings.cpu().numpy()
 
 def community_topk_similarity_graph(G, embeddings, player_names, resolution,
                                    similarity_threshold, preserve_ratio,
