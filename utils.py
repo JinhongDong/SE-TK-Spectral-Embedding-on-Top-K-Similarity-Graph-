@@ -16,6 +16,7 @@ from scipy.linalg import eigh
 from sklearn.model_selection import ParameterGrid
 import warnings
 import random
+import torch
 from scipy.sparse import diags
 from scipy.sparse.linalg import eigsh
 from scipy.sparse import csr_matrix
